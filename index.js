@@ -45,20 +45,26 @@ client.on('messageCreate', async (message) => {
         // Inform the user
         message.channel.send(`✅ A temporary voice channel named **${channelName}** has been created and you've been moved there!`);
 
-        // Add event listener to delete channel once empty
-        tempChannel.members.forEach((member) => {
-            if (member.voice.channel !== tempChannel) {
-                tempChannel.delete();
-            }
-        });
-
-        tempChannel.on('delete', () => {
-            message.channel.send(`The temporary channel **${channelName}** has been deleted.`);
-        });
-
     } catch (error) {
         console.error('Error creating voice channel:', error);
         message.channel.send('❌ There was an error creating the channel!');
+    }
+});
+
+// Listen for voice state updates to delete empty channels
+client.on('voiceStateUpdate', async (oldState, newState) => {
+    // Check if the channel is empty
+    if (oldState.channelId && oldState.channel.members.size === 0) {
+        try {
+            await oldState.channel.delete('Temporary voice channel deleted because it is empty.');
+            const channelName = oldState.channel.name;
+            const textChannel = oldState.guild.channels.cache.find(channel => channel.name === 'general'); // Change 'general' to your desired text channel
+            if (textChannel) {
+                textChannel.send(`The temporary channel **${channelName}** has been deleted.`);
+            }
+        } catch (error) {
+            console.error('Error deleting voice channel:', error);
+        }
     }
 });
 
